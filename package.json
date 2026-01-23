@@ -1,0 +1,39 @@
+{
+  "name": "hrskipbot",
+  "version": "1.0.0",
+  "description": "Telegram bot for automated job search and application",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "init": "node init.js",
+    "deploy": "git add . && git commit -m 'Deploy' && git push origin main",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod --dir .",
+    "deploy:reg-ru": "chmod +x deploy-reg-ru.sh && ./deploy-reg-ru.sh",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.12.2",
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^21.0.0",
+    "nodemailer": "^6.9.3",
+    "openai": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "mongoose": "^7.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "vercel": "^32.0.0"
+  },
+  "keywords": ["telegram", "bot", "job-search", "automation", "llm"],
+  "author": "Vladislav Tatyankin",
+  "license": "MIT"
+}
