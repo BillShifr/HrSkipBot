@@ -33,7 +33,7 @@ fi
 # Домены и пути
 DOMAIN="tatyankin-portfolio.online"
 APP_DIR="/var/www/${DOMAIN}"
-REPO_URL="https://github.com/BillShifr/hrskipbot.git"
+REPO_URL="https://github.com/BillShifr/HrSkipBot.git"
 
 log_info "🚀 Начало деплоя HR Skip Bot на ${DOMAIN}"
 
@@ -114,7 +114,7 @@ HH_CLIENT_SECRET=M79JEJ6VH8NRVEKG6P5QK68490DP3S4KPGEJ1GQRDRFKGQFFM3CTNSU6E670O6V
 HH_REDIRECT_URI=https://${DOMAIN}/auth/callback
 
 # OpenAI Configuration
-OPENAI_API_KEY=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
+OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 
 # Email Configuration (SMTP)
 SMTP_HOST=smtp.gmail.com

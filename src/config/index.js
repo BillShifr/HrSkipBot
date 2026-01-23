@@ -17,7 +17,7 @@ const config = {
 
   // OpenAI API
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || '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',
+    apiKey: process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY',
     model: 'gpt-4',
     maxTokens: 2000
   },
