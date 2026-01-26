@@ -49,12 +49,17 @@ class DatabaseService {
         // Users table
         `CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          telegram_id INTEGER UNIQUE NOT NULL,
-          hh_access_token TEXT,
-          hh_refresh_token TEXT,
-          hh_token_expires_at INTEGER,
-          resume_file_path TEXT,
-          cover_letter TEXT,
+          telegram_id TEXT UNIQUE NOT NULL,
+          username TEXT,
+          first_name TEXT,
+          last_name TEXT,
+          email TEXT,
+          phone TEXT,
+          resume TEXT,
+          preferences TEXT DEFAULT '{}',
+          templates TEXT DEFAULT '{}',
+          settings TEXT DEFAULT '{}',
+          statistics TEXT DEFAULT '{}',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -63,11 +68,15 @@ class DatabaseService {
         `CREATE TABLE IF NOT EXISTS job_applications (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER NOT NULL,
-          vacancy_id TEXT NOT NULL,
-          company_name TEXT,
-          position TEXT,
+          job_id TEXT NOT NULL,
+          company TEXT DEFAULT '{}',
+          position TEXT DEFAULT '{}',
           status TEXT DEFAULT 'pending',
-          applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          search_results TEXT DEFAULT '{}',
+          application_details TEXT DEFAULT '{}',
+          metadata TEXT DEFAULT '{}',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )`,
 
@@ -92,7 +101,8 @@ class DatabaseService {
         // Indexes for better performance
         `CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)`,
         `CREATE INDEX IF NOT EXISTS idx_applications_user_id ON job_applications(user_id)`,
-        `CREATE INDEX IF NOT EXISTS idx_applications_vacancy_id ON job_applications(vacancy_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_applications_job_id ON job_applications(job_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_applications_status ON job_applications(status)`,
         `CREATE INDEX IF NOT EXISTS idx_cached_vacancies_expires ON cached_vacancies(expires_at)`,
         `CREATE INDEX IF NOT EXISTS idx_sessions_telegram_id ON user_sessions(telegram_id)`
       ];
