@@ -1,0 +1,33 @@
+# Apache конфигурация для HR Skip Bot
+# Для ISPmanager
+
+# Включить PHP
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log logs/php_errors.log
+</IfModule>
+
+# Защита deploy.php (опционально - можно ограничить доступ по IP)
+<Files "deploy.php">
+    # Разрешить только POST запросы
+    <LimitExcept POST>
+        Require all denied
+    </LimitExcept>
+</Files>
+
+# Защита .env файла
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>
+
+# Защита других конфиденциальных файлов
+<FilesMatch "^(\.git|\.env|package-lock\.json|node_modules)">
+    Require all denied
+</FilesMatch>
+
+# Проксирование на Node.js приложение (если нужно)
+# Раскомментируйте, если хотите использовать Apache как прокси
+# RewriteEngine On
+# RewriteCond %{REQUEST_URI} !^/deploy\.php
+# RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
