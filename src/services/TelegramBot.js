@@ -118,13 +118,13 @@ class TelegramBot {
 
       if (!user) {
         // Create new user
-        user = new User({
+        const userData = await User.create({
           telegramId,
           username: ctx.from.username,
           firstName: ctx.from.first_name,
           lastName: ctx.from.last_name
         });
-        await user.save();
+        user = await User.findById(userData.id);
 
         await ctx.reply(
           `👋 Добро пожаловать в HR Skip Bot!\n\n` +
@@ -364,7 +364,7 @@ class TelegramBot {
       return;
     }
 
-    const applications = await JobApplication.find({ userId: user._id });
+    const applications = await JobApplication.findByUserId(user.id);
 
     const stats = {
       total: applications.length,
