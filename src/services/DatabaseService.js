@@ -45,7 +45,7 @@ class DatabaseService {
 
   static async initializeTables() {
     return new Promise((resolve, reject) => {
-      const queries = [
+      const tableQueries = [
         // Users table
         `CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,8 +96,10 @@ class DatabaseService {
           session_data TEXT NOT NULL,
           expires_at DATETIME NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`,
+        )`
+      ];
 
+      const indexQueries = [
         // Indexes for better performance
         `CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)`,
         `CREATE INDEX IF NOT EXISTS idx_applications_user_id ON job_applications(user_id)`,
@@ -107,23 +109,43 @@ class DatabaseService {
         `CREATE INDEX IF NOT EXISTS idx_sessions_telegram_id ON user_sessions(telegram_id)`
       ];
 
-      let completed = 0;
-      const total = queries.length;
+      // First create all tables sequentially
+      let tableIndex = 0;
+      const createNextTable = () => {
+        if (tableIndex >= tableQueries.length) {
+          // All tables created, now create indexes
+          let indexIndex = 0;
+          const createNextIndex = () => {
+            if (indexIndex >= indexQueries.length) {
+              console.log('All database tables and indexes initialized successfully');
+              resolve();
+              return;
+            }
+            this.db.run(indexQueries[indexIndex], (err) => {
+              if (err) {
+                console.error('Error creating index:', err);
+                // Don't reject, indexes are optional
+              }
+              indexIndex++;
+              createNextIndex();
+            });
+          };
+          createNextIndex();
+          return;
+        }
 
-      queries.forEach((query) => {
-        this.db.run(query, (err) => {
+        this.db.run(tableQueries[tableIndex], (err) => {
           if (err) {
             console.error('Error creating table:', err);
             reject(err);
             return;
           }
-          completed++;
-          if (completed === total) {
-            console.log('All database tables initialized successfully');
-            resolve();
-          }
+          tableIndex++;
+          createNextTable();
         });
-      });
+      };
+
+      createNextTable();
     });
   }
 

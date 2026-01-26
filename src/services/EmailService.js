@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor(config) {
     this.config = config;
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       host: config?.email?.host,
       port: config?.email?.port,
       secure: config?.email?.secure,
