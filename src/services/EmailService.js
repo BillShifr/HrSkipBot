@@ -26,15 +26,16 @@ class EmailService {
       // Prepare attachments if any
       const attachments = this.prepareAttachments(applicationData);
 
+      // Use SMTP user as sender, but set Reply-To to user's email
       const mailOptions = {
-        from: `"${user.firstName} ${user.lastName}" <${user.email}>`,
+        from: `"${user.firstName} ${user.lastName}" <${this.config.email.from}>`,
         to: applicationData.contacts.email,
         subject: subject,
         text: textContent,
         html: htmlContent,
         attachments: attachments,
-        // Add reply-to to user's email
-        replyTo: user.email
+        // Reply-To указывает на email пользователя для ответов
+        replyTo: user.email || this.config.email.from
       };
 
       // Send email

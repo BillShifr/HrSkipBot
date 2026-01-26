@@ -9,7 +9,10 @@ class User {
     this.lastName = data.last_name;
     this.email = data.email;
     this.phone = data.phone;
-    this.resume = data.resume ? JSON.parse(data.resume) : null;
+    this.resume = data.resume ? (typeof data.resume === 'string' ? JSON.parse(data.resume) : data.resume) : null;
+    this.hhAccessToken = data.hh_access_token;
+    this.hhRefreshToken = data.hh_refresh_token;
+    this.hhTokenExpiresAt = data.hh_token_expires_at;
     this.preferences = data.preferences ? JSON.parse(data.preferences) : {};
     this.templates = data.templates ? JSON.parse(data.templates) : {};
     this.settings = data.settings ? JSON.parse(data.settings) : {};
@@ -144,6 +147,32 @@ class User {
         }
         resolve(this);
       });
+    });
+  }
+
+  static async update(userId, updates) {
+    return new Promise((resolve, reject) => {
+      const db = DatabaseService.getConnection();
+      if (!db) {
+        reject(new Error('Database not connected'));
+        return;
+      }
+
+      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updates);
+      values.push(userId);
+
+      db.run(
+        `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        values,
+        function(err) {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve({ changes: this.changes });
+        }
+      );
     });
   }
 

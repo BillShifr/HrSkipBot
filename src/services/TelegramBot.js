@@ -81,6 +81,11 @@ class TelegramBot {
       ctx.session.awaitingInput = 'template';
     });
 
+    // Auth action
+    this.bot.action('auth_hh', async (ctx) => {
+      await this.handleAuthHH(ctx);
+    });
+
     // Search actions
     this.bot.action(/^apply_(.+)$/, async (ctx) => {
       const jobId = ctx.match[1];
@@ -109,7 +114,7 @@ class TelegramBot {
 
     try {
       // Check if user exists
-      let user = await User.findOne({ telegramId });
+      let user = await User.findByTelegramId(telegramId);
 
       if (!user) {
         // Create new user
@@ -143,6 +148,9 @@ class TelegramBot {
    * Show main menu
    */
   async showMainMenu(ctx) {
+    const user = await User.findByTelegramId(ctx.from.id.toString());
+    const hasAuth = user && user.hh_access_token;
+
     const keyboard = {
       inline_keyboard: [
         [
@@ -150,10 +158,11 @@ class TelegramBot {
           { text: '⚙️ Настройки', callback_data: 'settings' }
         ],
         [
-          { text: '📊 Статистика', callback_data: 'status' },
+          { text: hasAuth ? '✅ HH.ru авторизован' : '🔑 Авторизоваться на HH.ru', callback_data: 'auth_hh' },
           { text: '📄 Резюме', callback_data: 'resume' }
         ],
         [
+          { text: '📊 Статистика', callback_data: 'status' },
           { text: '❓ Помощь', callback_data: 'help' }
         ]
       ]
@@ -205,7 +214,7 @@ class TelegramBot {
    * Handle settings
    */
   async handleSettings(ctx) {
-    const user = await User.findOne({ telegramId: ctx.from.id.toString() });
+    const user = await User.findByTelegramId(ctx.from.id.toString());
 
     if (!user) {
       await ctx.reply('Сначала выполните /start');
@@ -250,7 +259,7 @@ class TelegramBot {
    * Handle search command
    */
   async handleSearch(ctx) {
-    const user = await User.findOne({ telegramId: ctx.from.id.toString() });
+    const user = await User.findByTelegramId(ctx.from.id.toString());
 
     if (!user) {
       await ctx.reply('Сначала выполните /start');
@@ -268,9 +277,24 @@ class TelegramBot {
       // Get recommended vacancies
       let vacancies = [];
 
-      if (user.resume?.hhId) {
+      // Check if user has HH.ru authorization
+      if (!user.hh_access_token) {
+        await ctx.reply(
+          '⚠️ Для получения рекомендованных вакансий необходимо авторизоваться на HH.ru.\n\n' +
+          'Используйте кнопку "🔑 Авторизоваться на HH.ru" в главном меню.'
+        );
+        return;
+      }
+
+      // Parse resume data
+      const resumeData = user.resume ? (typeof user.resume === 'string' ? JSON.parse(user.resume) : user.resume) : null;
+
+      if (resumeData?.hhId && user.hh_access_token) {
         // Get recommendations based on resume
-        const recommendations = await this.hhApi.getRecommendedVacancies(user.resume.hhId);
+        const recommendations = await this.hhApi.getRecommendedVacancies(resumeData.hhId, {
+          accessToken: user.hh_access_token,
+          limit: 20
+        });
         vacancies = recommendations.items;
       } else {
         // Search by preferences
@@ -333,7 +357,7 @@ class TelegramBot {
    * Handle status command
    */
   async handleStatus(ctx) {
-    const user = await User.findOne({ telegramId: ctx.from.id.toString() });
+    const user = await User.findByTelegramId(ctx.from.id.toString());
 
     if (!user) {
       await ctx.reply('Сначала выполните /start');
@@ -369,7 +393,7 @@ class TelegramBot {
    * Handle apply action
    */
   async handleApply(ctx, jobId) {
-    const user = await User.findOne({ telegramId: ctx.from.id.toString() });
+    const user = await User.findByTelegramId(ctx.from.id.toString());
 
     if (!user) {
       await ctx.reply('Пользователь не найден');
@@ -383,10 +407,8 @@ class TelegramBot {
       const vacancy = await this.hhApi.getVacancyDetails(jobId);
 
       // Check if already applied
-      const existingApplication = await JobApplication.findOne({
-        userId: user._id,
-        jobId: jobId
-      });
+      const existingApplications = await JobApplication.findByUserId(user.id, { limit: 100 });
+      const existingApplication = existingApplications.find(app => app.jobId === jobId);
 
       if (existingApplication) {
         await ctx.reply('Вы уже отправляли резюме на эту вакансию.');
@@ -394,8 +416,8 @@ class TelegramBot {
       }
 
       // Create job application record
-      const application = new JobApplication({
-        userId: user._id,
+      const applicationData = await JobApplication.create({
+        userId: user.id,
         jobId: jobId,
         company: {
           name: vacancy.employer.name,
@@ -411,7 +433,7 @@ class TelegramBot {
         }
       });
 
-      await application.save();
+      const application = await JobApplication.findById(applicationData.id);
 
       // Search for job on company website
       await ctx.reply('🔍 Ищу контакты компании...');
@@ -428,9 +450,13 @@ class TelegramBot {
         // Send application email
         await ctx.reply('📧 Отправляю резюме...');
 
+        // Get resume file path if exists
+        const resumePath = user.resume?.filePath || null;
+
         const emailResult = await this.emailService.sendApplicationEmail({
-          ...application.toObject(),
-          contacts: searchResults.contacts
+          ...application.toJSON(),
+          contacts: searchResults.contacts,
+          resumePath: resumePath
         }, user);
 
         if (emailResult.success) {
@@ -438,13 +464,18 @@ class TelegramBot {
           application.applicationDetails = {
             emailSent: true,
             emailSubject: emailResult.subject,
-            emailContent: user.templates?.coverLetter,
+            emailContent: user.templates?.coverLetter || '',
             sentAt: emailResult.sentAt
           };
 
           // Update user statistics
-          user.statistics.totalApplications += 1;
-          user.statistics.lastActivity = new Date();
+          const stats = user.statistics || {};
+          stats.totalApplications = (stats.totalApplications || 0) + 1;
+          stats.lastActivity = new Date().toISOString();
+          user.statistics = stats;
+
+          await application.save();
+          await user.save();
 
           await ctx.reply('✅ Резюме успешно отправлено!');
         } else {
@@ -453,15 +484,14 @@ class TelegramBot {
             emailSent: false,
             error: emailResult.error
           };
+          await application.save();
           await ctx.reply('❌ Ошибка при отправке резюме: ' + emailResult.error);
         }
       } else {
         application.status = 'contact_found';
+        await application.save();
         await ctx.reply('❓ Не удалось найти контакты для отправки. Вакансия сохранена для ручной обработки.');
       }
-
-      await application.save();
-      await user.save();
 
     } catch (error) {
       console.error('Error in apply:', error);
@@ -566,8 +596,29 @@ ${vacancy.description ? vacancy.description.substring(0, 500) + '...' : 'Опи�
    * Handle resume command
    */
   async handleResume(ctx) {
-    // This would integrate with HH.ru OAuth
-    await ctx.reply('Функция управления резюме пока не реализована. Используйте настройки для указания ключевых слов поиска.');
+    const user = await User.findByTelegramId(ctx.from.id.toString());
+    
+    if (!user) {
+      await ctx.reply('Сначала выполните /start');
+      return;
+    }
+
+    if (user.resume) {
+      const resumeData = typeof user.resume === 'string' ? JSON.parse(user.resume) : user.resume;
+      await ctx.reply(
+        `📄 Ваше резюме:\n\n` +
+        `Название: ${resumeData.title || 'Не указано'}\n` +
+        `ID на HH.ru: ${resumeData.hhId || 'Не указано'}\n\n` +
+        `Для загрузки файла резюме отправьте файл PDF или DOCX.`
+      );
+    } else {
+      await ctx.reply(
+        '📄 Резюме не найдено.\n\n' +
+        'Вы можете:\n' +
+        '1. Авторизоваться на HH.ru для автоматической загрузки резюме\n' +
+        '2. Отправить файл резюме (PDF или DOCX)'
+      );
+    }
   }
 
   /**

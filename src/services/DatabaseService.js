@@ -60,6 +60,9 @@ class DatabaseService {
           templates TEXT DEFAULT '{}',
           settings TEXT DEFAULT '{}',
           statistics TEXT DEFAULT '{}',
+          hh_access_token TEXT,
+          hh_refresh_token TEXT,
+          hh_token_expires_at INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,

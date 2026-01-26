@@ -23,6 +23,64 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// HH.ru OAuth callback endpoint
+app.get('/auth/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    const telegramId = state;
+
+    if (!code || !telegramId) {
+      return res.status(400).send('Missing authorization code or state');
+    }
+
+    const AuthController = require('./controllers/AuthController');
+    const authController = new AuthController(config);
+
+    await authController.exchangeCodeForToken(code, telegramId);
+
+    res.send(`
+      <html>
+        <head>
+          <title>Авторизация успешна</title>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .success { color: green; font-size: 24px; margin-bottom: 20px; }
+            .info { color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="success">✅ Авторизация успешна!</div>
+          <div class="info">Вы можете закрыть это окно и вернуться в Telegram бота.</div>
+          <script>
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          </script>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.status(500).send(`
+      <html>
+        <head>
+          <title>Ошибка авторизации</title>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .error { color: red; font-size: 24px; }
+          </style>
+        </head>
+        <body>
+          <div class="error">❌ Ошибка авторизации</div>
+          <p>${error.message}</p>
+        </body>
+      </html>
+    `);
+  }
+});
+
 // Initialize services
 async function initializeServices() {
   try {

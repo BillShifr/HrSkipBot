@@ -36,7 +36,7 @@ class HhApiService {
   /**
    * Get recommended vacancies for a resume
    * @param {string} resumeId - Resume ID
-   * @param {Object} options - Search options
+   * @param {Object} options - Search options (accessToken, limit, page, filters)
    * @returns {Promise<Array>} Recommended vacancies
    */
   async getRecommendedVacancies(resumeId, options = {}) {
@@ -48,7 +48,15 @@ class HhApiService {
         ...options.filters
       };
 
-      const response = await this.client.get('/vacancies', { params });
+      const headers = {};
+      if (options.accessToken) {
+        headers['Authorization'] = `Bearer ${options.accessToken}`;
+      }
+
+      const response = await this.client.get('/vacancies', { 
+        params,
+        headers 
+      });
 
       return {
         items: response.data.items,
