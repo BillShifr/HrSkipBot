@@ -32,7 +32,10 @@ jobs:
         username: root
         key: ${{ secrets.SERVER_SSH_KEY }}
         port: 22
+        timeout: 300s
+        command_timeout: 300s
         script: |
+          set -e
           cd /var/www/tatyankin-portfolio.online
 
           # Backup current version
@@ -41,22 +44,24 @@ jobs:
 
           # Pull latest changes
           echo "Pulling latest changes..."
-          git pull origin main
+          git pull origin main || { echo "Git pull failed"; exit 1; }
 
-          # Install dependencies
+          # Install dependencies (with timeout)
           echo "Installing dependencies..."
-          npm install --production --prefer-offline --no-audit
+          timeout 180 npm install --production --prefer-offline --no-audit || { echo "npm install failed or timed out"; exit 1; }
 
           # Restart application
           echo "Restarting application..."
-          pm2 restart hrskipbot || pm2 start ecosystem.config.js
+          pm2 restart hrskipbot 2>/dev/null || pm2 start ecosystem.config.js || { echo "PM2 restart failed"; exit 1; }
 
-          # Show status
+          # Show status (quick check)
           echo "Deployment completed!"
-          pm2 status
+          pm2 status --no-color
           
-          # Wait a moment for app to start
-          sleep 3
-          
-          # Check if app is running (timeout after 5 seconds)
-          timeout 5 pm2 logs hrskipbot --lines 5 --nostream || echo "Logs check completed"
+          # Quick health check
+          sleep 2
+          if pm2 jlist | grep -q '"name":"hrskipbot"'; then
+            echo "✅ Application is running"
+          else
+            echo "⚠️ Application status unclear"
+          fi
