@@ -12,7 +12,6 @@ class EmailService {
   }
 
   /**
-   * Send application email
    * @param {Object} applicationData - Application data
    * @param {Object} user - User data
    * @returns {Promise<Object>} Send result
