@@ -54,4 +54,9 @@ jobs:
           # Show status
           echo "Deployment completed!"
           pm2 status
-          pm2 logs hrskipbot --lines 10
+          
+          # Wait a moment for app to start
+          sleep 3
+          
+          # Check if app is running (timeout after 5 seconds)
+          timeout 5 pm2 logs hrskipbot --lines 5 --nostream || echo "Logs check completed"
