@@ -20,7 +20,7 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run tests (if any)
       run: npm test || true
@@ -45,7 +45,7 @@ jobs:
 
           # Install dependencies
           echo "Installing dependencies..."
-          npm install --production
+          npm install --production --prefer-offline --no-audit
 
           # Restart application
           echo "Restarting application..."
