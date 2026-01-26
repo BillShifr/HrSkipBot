@@ -68,7 +68,6 @@ if ($GITHUB_SECRET && $GITHUB_SECRET !== 'your-secret-key-change-me') {
     }
 }
 
-// Проверка события
 if ($event !== 'push') {
     http_response_code(200);
     logMessage("INFO: Ignoring event: $event");
