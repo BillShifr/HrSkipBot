@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
 async function initializeServices() {
   try {
     // Connect to database
-    await DatabaseService.connect(config.database.mongoUri);
+    await DatabaseService.connect(config.database.url);
 
     // Initialize Telegram bot
     const bot = new Telegraf(config.telegram.token);

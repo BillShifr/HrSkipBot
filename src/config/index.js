@@ -17,7 +17,7 @@ const config = {
 
   // OpenAI API
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY',
+    apiKey: process.env.OPENAI_API_KEY || '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',
     model: 'gpt-4',
     maxTokens: 2000
   },
@@ -36,6 +36,9 @@ const config = {
 
   // Database
   database: {
+    type: 'sqlite',
+    url: process.env.DATABASE_URL || './database.sqlite',
+    // Legacy MongoDB support (will be ignored if using SQLite)
     mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hhbot',
     redisUrl: process.env.REDIS_URL
   },
